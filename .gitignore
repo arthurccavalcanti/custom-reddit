@@ -1,0 +1,6 @@
+*.py[cod]
+cache/
+output_files/
+*.env
+__pycache__/
+reddit_api_env/
