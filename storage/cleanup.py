@@ -5,9 +5,10 @@ from datetime import datetime, timedelta
 import send2trash
 
 """
-    Deletes (moves to recycle bin) all folders and files inside folder_path 
-    that were last modified more than days_old days ago.
-    """
+Deletes (moves to recycle bin) all folders and files inside folder_path 
+that were last modified more than days_old days ago.
+"""
+
 def cleanup(days=None, output_folder=None):
 
     print(f"I will delete any folders or files in {output_folder} older than {days} days.")
@@ -49,7 +50,7 @@ def delete_old_files_and_folders(folder_path, days_old):
             except Exception as e:
                 print(f"Failed to process folder {dir_path}: {e}")
 
-    # TO DO: logger with deleted_items
+    # TO DO: logger with deleted_items.
 '''
 
 
