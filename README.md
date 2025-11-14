@@ -1,5 +1,3 @@
-# README DO PROGRAMA
-
 ## Project Structure
 
 ```
@@ -27,22 +25,3 @@ api_processor/
 	.env
 ```
 ------
-
-### Program flow:
-
-> input_parameters -> main -> request_handler -> processor -> handlers -> storage -> HTML & logger
-
-If any errors, use logger.
-
-------
-
-READMES of projects
-- short description
-- gif of it running
-- how to run
-- tech used
-- quick rundown of development problems
-- wishlist of future features
-- include tests
-- do commit history
-- have your main projects with a master branch, a dev branch and a in progress feature branch
