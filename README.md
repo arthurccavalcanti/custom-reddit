@@ -1,15 +1,20 @@
 # Reddit Extractor
 
-This is a web application to download and display content from reddit.com
+> Web application to download and display content from reddit.com
+
 - choose which subreddits to download from
 - choose criteria for downloading posts
-- store and manage posts locally
+- store and manage posts in a SQLite DB
 
-![](demo gifs/test reddit.gif)
+<img src="demo%20gifs/test%20reddit2.gif"/>
 
+- filter by title or subreddit
+- download and access posts offline
+- delete old posts automatically
 
----
-### How to use it
+<img src="demo%20gifs/test%20reddit4.gif"/>
+
+## How to use it
 
 Once the app starts, you can choose **general settings**:
 - `Deletion threshold`
@@ -17,6 +22,8 @@ Once the app starts, you can choose **general settings**:
 - `Posts per page`
 	- how many posts should be displayed in a page
 	- (avoids doom scrolling)
+
+<img src="demo%20gifs/test%20reddit.gif"/>
 
 You can also choose **subreddit-specific settings**:
 - `Max posts`
@@ -41,9 +48,10 @@ You can also choose **subreddit-specific settings**:
 
 Once you have decided on your preferred settings, you can run the downloader program and browse the app as if you were browsing regular reddit.
 
+<img src="demo%20gifs/test%20reddit3.gif"/>
 
----
-### How to run it
+
+## How to run it
 
 #### 1. Install a [python3 interpreter](https://www.python.org/downloads/) (if you don't have one installed)
 - Make sure you can access python in your favourite CLI
@@ -72,7 +80,7 @@ Once you have decided on your preferred settings, you can run the downloader pro
 
 #### 4. Navigate to the app's directory and execute it
 - Navigate to wherever directory the project is at:
-	-  `cd project_directory`
+	-  `cd custom_reddit`
 - Run the app 
 	- `> python3 app.py`
 - Once started, the app will open your browser in the app's settings page
@@ -83,7 +91,8 @@ Once you have decided on your preferred settings, you can run the downloader pro
 - Improve the pages' UI
 - Style OP comments differently
 - Add more specific downloader configurations
-- Improve handling of unexistant subreddit names
+- Improve handling of nonexistent subreddit names
+- Add tutorial page
 
 ---
 ### Boring technical details
