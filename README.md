@@ -5,7 +5,7 @@ This is a web application to download and display content from reddit.com
 - choose criteria for downloading posts
 - store and manage posts locally
 
-<gif here>
+![](demo gifs/test reddit.gif)
 
 
 ---
