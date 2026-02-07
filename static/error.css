@@ -1,0 +1,12 @@
+#error-container {
+    max-width: 800px;
+    margin: var(--spacing) auto;
+    padding: 0 var(--spacing);
+    background: white; padding: 30px; 
+    border-radius: 8px; 
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
+}
+
+.status-bar {
+    margin-top: 1rem;
+}

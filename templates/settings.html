@@ -1,0 +1,430 @@
+{% extends 'base.html' %}
+
+{% block styles %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='settings.css') }}"
+{% endblock %}
+
+{% block content %}
+
+<div id="toast-container" class="toast-container"></div>
+
+<div class="settings-container">
+    <h1>Settings</h1>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="status-bar">
+        <span><strong>Last Run:</strong> <span id="last-run-display">{{ last_run }}</span></span>
+        
+        <span id="status-indicator" style="display:none;">
+            <div class="loader"></div> Downloader is running...
+        </span>
+
+        <span id="delete-result" style="display:none;"></span>
+    </div>
+
+    <form method="POST" action="{{ url_for('settings') }}" id="settings-form">
+        
+        <section>
+            <h2>App Configuration</h2>
+            <div class="sub-grid">
+                <div>
+                    <label>Delete posts older than (days)</label>
+                    <input type="number" name="delete_time" value="{{ configs.delete_time }}">
+                </div>
+                <div>
+                    <label>Posts Per Page</label>
+                    <input type="number" name="posts_per_page" value="{{ configs.posts_per_page }}">
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2>Subreddit Downloader Config</h2>
+            <div id="subreddits-container"></div>
+            <button type="button" class="btn-add" onclick="addSubredditCard()">+ Add Subreddit</button>
+            
+            <input type="hidden" name="subreddits_json" id="subreddits-json">
+        </section>
+
+        <div class="actions">
+            <button type="submit" name="action" class="btn-primary" onclick="return prepareSubmit()">
+                Save Settings
+            </button>
+
+            <button type="submit" name="action" value="run_downloader" id="downloader-btn" class="btn-secondary"
+                    onclick="return prepareSubmit()">
+                Save Settings and Run Downloader
+            </button>
+
+            <button type="button" onclick="deleteAll()" id="delete-all" class="btn-danger">
+                Delete all downloaded posts
+            </button>
+        </div>
+    </form>
+</div>
+
+    <script>
+        const initialSettings = {{ settings | tojson }};
+        const container = document.getElementById('subreddits-container');
+        const statusIndicator = document.getElementById('status-indicator');
+        const lastRunDisplay = document.getElementById('last-run-display');
+        const runBtn = document.getElementById('downloader-btn');
+        const deleteAllBtn = document.getElementById('delete-all');
+
+
+        const defaultSubConfig = {
+            "num_posts": 10,
+            "order_by": "hot",
+            "flairs": {
+                "filter": false,
+                "wanted_flairs": []
+            },
+            "ignore_stickied_posts": false,
+            "comments": { 
+                "max_comments": 10,
+                "max_replies": 10,
+                "ignore_if_fewer_comments_than": 0,
+                "ignore_stickied_comments": false
+            }
+        };
+
+        // --- Initialization ---
+
+        for (const [subName, config] of Object.entries(initialSettings)) {
+            const cardNode = renderCard(subName, config);
+            
+            if (config.flairs && config.flairs.wanted_flairs) {
+                const flairContainer = cardNode.querySelector('.flair-list-container');
+                config.flairs.wanted_flairs.forEach(flair => {
+                    renderFlairInput(flairContainer, flair);
+                });
+                
+                // Re-toggle the UI if filter was enabled
+                if (config.flairs.filter) {
+                    const checkbox = cardNode.querySelector('.filter-flairs-check');
+                    checkbox.checked = true;
+                    toggleFlairUI(checkbox);
+                }
+            }
+        }
+
+        // --- New Subreddits ---
+
+        function addSubredditCard() {
+            const currentCount = document.querySelectorAll('.sub-card').length;
+            if (currentCount > 10) {
+                showToast("Limit of 10 subreddits reached.", 'error');
+                return;
+            }
+            renderCard('', defaultSubConfig);
+        }
+
+        function renderCard(name, config) {
+            const div = document.createElement('div');
+            div.className = 'sub-card';
+            div.innerHTML = `
+                <div class="sub-card-header">
+                    <input type="text" class="sub-name" placeholder="r/subreddit" value="${name}" style="width:50%; margin:0; font-weight:bold;">
+                    <button type="button" class="btn-danger" onclick="this.closest('.sub-card').remove()">Remove</button>
+                </div>
+                <div class="sub-grid">
+                    <div>
+                        <label>Max Posts</label>
+                        <input type="number" class="sub-limit" value="${config.num_posts || 10}">
+                        
+                        <label>Sort By</label>
+                        <select class="sub-order">
+                            <option value="hot" ${config.order_by === 'hot' ? 'selected' : ''}>Hot</option>
+                            <option value="new" ${config.order_by === 'new' ? 'selected' : ''}>New</option>
+                            <option value="top" ${config.order_by === 'top' ? 'selected' : ''}>Top</option>
+                        </select>
+                    </div>
+                    <div>
+                        
+                        <div class="ignore_stickied_posts">
+                            <input type="checkbox" class="ignore-stickied" ${config.ignore_stickied_posts ? 'checked' : ''}>
+                            <label style="display:inline;">Ignore stickied posts</label>
+                        </div>
+
+                        <div>
+                            <input type="checkbox" class="filter-flairs-check" onchange="toggleFlairUI(this)" ${config.flairs?.filter ? 'checked' : ''}>
+                            <label style="display:inline;">Filter flairs</label>
+                            
+                            <div class="flair-ui-group" style="display: ${config.flairs?.filter ? 'block' : 'none'}; border-left: 2px solid #ddd; padding-left: 10px; margin-top: 5px;">
+                                <button type="button" class="btn-add" style="font-size:0.8em; padding: 2px 5px;" onclick="addFlairToCard(this)">+ Add Flair</button>
+                                <div class="flair-list-container"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="comments-settings">
+                        <label>Max Comments</label>
+                        <input type="number" class="sub-max-comments" value="${config.comments?.max_comments || 10}">
+                        
+                        <label>Max Replies</label>
+                        <input type="number" class="sub-max-replies" value="${config.comments?.max_replies || 10}">
+                        
+                        <div style="margin-top:5px;">
+                            <input type="checkbox" class="sub-ignore-stickied-comm" ${config.comments?.ignore_stickied_comments ? 'checked' : ''}>
+                            <label style="display:inline; font-size:0.8em;">Ignore stickied</label>
+                        </div>
+
+                        <label>Ignore post if it has fewer comments than:</label>
+                        <input type="number" class="sub-min-comments" value="${config.comments?.ignore_if_fewer_comments_than || 0}">
+                    </div>
+                </div>
+            `;
+            container.appendChild(div);
+            return div;
+        }
+
+        // --- Flairs ---
+
+        function toggleFlairUI(checkbox) {
+            // Find the neighbor UI group within this specific card
+            const group = checkbox.parentElement.querySelector('.flair-ui-group');
+            group.style.display = checkbox.checked ? 'block' : 'none';
+        }
+
+        function addFlairToCard(btn) {
+            const listContainer = btn.parentElement.querySelector('.flair-list-container');
+            if (listContainer.children.length >= 5) {
+                showToast("Max 5 flairs allowed per subreddit.", 'error');
+                return;
+            }
+            renderFlairInput(listContainer, '');
+        }
+
+        function renderFlairInput(container, value) {
+            const div = document.createElement('div');
+            div.style.marginBottom = "5px";
+            div.style.display = "flex";
+            div.style.gap = "5px";
+        
+            div.innerHTML = `
+                <input type="text" class="flair-val" value="${value}" placeholder="Flair text">
+                <button type="button" class="flair-btn" onclick="this.parentElement.remove()">X</button>
+            `;
+            container.appendChild(div);
+        }
+
+        // --- Submit ---
+
+        function prepareSubmit() {
+            if (!validateInput()) return false;
+
+            const result = {};
+            const cards = document.querySelectorAll('.sub-card');
+
+            cards.forEach(card => {
+                const name = card.querySelector('.sub-name').value.trim();
+                if (!name) return;
+
+                const flairInputs = card.querySelectorAll('.flair-val');
+                const wantedFlairs = [];
+                flairInputs.forEach(input => {
+                    if (input.value.trim()) wantedFlairs.push(input.value.trim());
+                });
+
+                result[name] = {
+                    "num_posts": parseInt(card.querySelector('.sub-limit').value) || 10,
+                    "order_by": card.querySelector('.sub-order').value,
+                    "ignore_stickied_posts": card.querySelector('.ignore-stickied').checked,
+                    "ignore_if_fewer_comments_than": parseInt(card.querySelector('.sub-min-comments').value) || 0,
+                    "flairs": {
+                        "filter": card.querySelector('.filter-flairs-check').checked,
+                        "wanted_flairs": wantedFlairs
+                    },
+                    "comments": {
+                        "max_comments": parseInt(card.querySelector('.sub-max-comments').value) || 10,
+                        "max_replies": parseInt(card.querySelector('.sub-max-replies').value) || 2,
+                        "ignore_stickied_comments": card.querySelector('.sub-ignore-stickied-comm').checked,
+                    }
+                };
+            })
+
+            document.getElementById('subreddits-json').value = JSON.stringify(result);
+            return true;
+        }
+
+        function validateInput() {
+            let isValid = true;
+            let firstErrorField = null;
+
+            // Clear previous errors
+            document.querySelectorAll('.error-field').forEach(el => el.classList.remove('error-field'));
+
+            const names = document.querySelectorAll('.sub-name');
+            const seenNames = new Set();
+
+            names.forEach(input => {
+                let val = input.value.trim().toLowerCase();
+                // Check for empty names
+                if (!val) {
+                    return; 
+                }
+                input.value = val;
+
+                // Check whitespace
+                if (/\s/.test(val)) {
+                    showToast(`Subreddit '${val}' cannot contain spaces.`, 'error');
+                    input.classList.add('error-field');
+                    isValid = false;
+                    if(!firstErrorField) firstErrorField = input;
+                }
+
+                // Check duplicates
+                if (seenNames.has(val)) {
+                    showToast(`Duplicate subreddit: '${val}'.`, 'error');
+                    input.classList.add('error-field');
+                    isValid = false;
+                    if(!firstErrorField) firstErrorField = input;
+                }
+                seenNames.add(val);
+            });
+
+            // TO DO: Check if filter is selected and no flairs were given
+
+            // Validate Numerical Limits
+            const numberInputs = document.querySelectorAll('input[type="number"]');
+            numberInputs.forEach(input => {
+                const val = parseInt(input.value);
+                
+                if (val < 0) {
+                    showToast("Values cannot be negative.", 'error');
+                    input.classList.add('error-field');
+                    isValid = false;
+                    if(!firstErrorField) firstErrorField = input;
+                }
+
+                // Hardcoded Limits
+                if (input.classList.contains('sub-limit') && val > 50) {
+                    showToast("Max posts cannot exceed 50.", 'error');
+                    input.classList.add('error-field');
+                    isValid = false;
+                    if(!firstErrorField) firstErrorField = input;
+                }
+                
+                if (input.classList.contains('sub-max-comments') && val > 500) {
+                    showToast("Max comments cannot exceed 500.", 'error');
+                    input.classList.add('error-field');
+                    isValid = false;
+                    if(!firstErrorField) firstErrorField = input;
+                }
+
+                if (input.name == "posts_per_page" && val == 0) {
+                    showToast("You need to display at least 1 post per page", 'error');
+                    input.classList.add('error-field');
+                    isValid = false;
+                    if(!firstErrorField) firstErrorField = input;
+                }
+
+                if (input.name == "delete_time" && !val) {
+                    input.value = 0;
+                }
+            });
+
+            if (!isValid && firstErrorField) {
+                firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            return isValid;
+        }
+
+        // --- Delete all ---
+
+        function deleteAll() {
+            const deleteButton = document.getElementById("delete-all");
+            const deleteResult = document.getElementById("delete-result");
+
+            if (!confirm("Are you sure you want to delete all downloaded posts, comments, and media? This action cannot be undone.")) {
+                return;
+            }            
+            
+            deleteButton.disabled = true;
+            deleteButton.innerHTML = '<div class="loader" style="border-color: white white white transparent;"></div> Deleting...';
+            deleteResult.style.display = "none";
+
+            fetch('/delete', {
+                method: 'POST'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                deleteResult.textContent = data.message;
+                deleteResult.style.display = "inline";
+                deleteResult.style.color = data.success ? "#28a745" : "#dc3545";
+                if(data.success) showToast(data.message, 'success');
+            })
+            .catch(error => {
+                console.error('Delete failed:', error);
+                showToast("Delete failed: " + error.message, 'error');
+            })
+            .finally(() => {
+                deleteButton.disabled = false;
+                deleteButton.innerText = "Delete all downloaded posts";
+            });  
+        }
+
+        // --- Status display ---
+
+        function updateUI(isRunning, lastRunTime) {
+            if (isRunning) {
+                runBtn.disabled = true;
+                deleteAllBtn.disabled = true;
+                runBtn.innerHTML = '<div class="loader" style="width:10px; height:10px; border-width:2px;"></div> Running...';
+                statusIndicator.style.display = "inline";
+            } else {
+                runBtn.disabled = false;
+                deleteAllBtn.disabled = false;
+                runBtn.textContent = "Save Settings and Run Downloader";
+                statusIndicator.style.display = "none";
+            }
+            if (lastRunTime) {
+                lastRunDisplay.textContent = lastRunTime;
+            }
+        }
+
+        function pollStatus() {
+            fetch('/status')
+                .then(response => response.json())
+                .then(data => updateUI(data.running, data.last_run))
+                .catch(err => console.error('Error polling status:', err));
+        }
+
+        pollStatus();
+        setInterval(pollStatus, 10000); // poll every 10 seconds
+
+        // --- Toast Notifications ---
+
+        function showToast(message, type='info') {
+            const toastContainer = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            
+            toastContainer.appendChild(toast);
+            
+            // Trigger reflow for animation
+            void toast.offsetWidth;
+            toast.classList.add('show');
+
+            // Remove after 3 seconds
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+    </script>
+
+{% endblock %}
