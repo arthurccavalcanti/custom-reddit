@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Reddit Offline</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='base.css') }}">
+    {% block styles %}
+    {% endblock %}
+</head>
+<body>
+    <nav>
+        <a href="{{ url_for('home') }}">Home</a>
+        <a href="{{ url_for('settings') }}">Settings</a>
+        <a href="{{ url_for('tutorial') }}">Tutorial</a>
+        <span id="title">Reddit Offline</span>
+    </nav>
+    
+    <div class="base-container">
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>

@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% from 'macros.html' import render_comment %}
+
+{% block styles %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='post.css') }}"
+{% endblock %}
+
+{% block content %}
+    <article class="post-card">
+        <div class="post-header">
+            {% if post['subreddit'] %}
+                <p class="subreddit-name">r/{{ post['subreddit'] }}</p>
+                <span class="separator">•</span>
+            {% endif %}
+            <span>Posted by u/{{ post['author'] }}</span>
+            <div class="post-meta-extra">
+                <span>{{ post['datetime'] }}</span>
+                {% if post['flair'] %}
+                    <span class="flair-tag">{{ post['flair'] }}</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <h1 class="post-title"><a href="{{ post['url'] }}">{{ post['title'] }}</a></h1>
+
+        {% if local_media %}
+            <div class="media-container">
+                {% if post['post_type'] == 'video' %}
+                    <div class="video-wrapper">
+                        <video controls>
+                            <source src="{{ url_for('serve_media', filename=local_media) }}" type="video/mp4">
+                        </video>
+                    </div>
+                {% endif %}
+
+                {% if post['post_type'] == 'image' %}
+                    <div class="image-wrapper">
+                        <img src="{{ url_for('serve_media', filename=local_media) }}">
+                    </div>
+                {% endif %}
+
+                {% if post['post_type'] == 'gallery' %}
+                    <div class="gallery-wrapper">
+                        {% for image in local_media %}
+                            <div class="gallery-item">
+                                <img src="{{ url_for('serve_media', filename=image) }}">
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        {% endif %}
+        
+        <div class="selftext">
+            {{ post['text'] }}
+        </div>
+        
+        <div class="post-footer">
+            <span class="vote-count">⬆ {{ post['ups'] }}</span> 
+            <span class="vote-count">| {{ post['downs'] }} ⬇</span>
+            <span class="comment-count">{{ post['num_comments']}} Comments</span>
+        </div>
+        
+        <div class="comment-section">
+            {% if comments %}
+                {% for comment in comments.values() %}
+                    {{ render_comment(comment) }}
+                {% endfor %}
+            {% endif %}
+        </div>
+    </article>
+{% endblock %}

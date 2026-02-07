@@ -1,0 +1,156 @@
+/* --- Main Card Layout --- */
+.post-card {
+    background: white;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    padding: 0; /* Let children handle padding */
+    margin-bottom: 20px;
+    overflow: hidden; /* Contains media corners */
+}
+
+.post-title {
+    font-size: 1.25rem;
+    padding: 0 16px;
+    margin: 1rem 2rem;
+}
+
+.post-title a {
+    color: black;
+    text-decoration: none;
+}
+
+.post-meta-extra {
+    width: 100%;
+}
+
+/* --- Header & Meta --- */
+.post-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    color: var(--text-meta);
+    padding: 8px 16px;
+    flex-wrap: wrap;
+}
+
+.subreddit-name {
+    font-weight: bold;
+    color: black;
+    text-decoration: none;
+}
+
+.flair-tag {
+    background: var(--reddit-gray);
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+}
+
+/* --- Media Handling --- */
+.media-container {
+    width: 100%;
+    background-color: #000;
+    display: flex;
+    justify-content: center;
+    margin: 10px 0;
+    border-radius: 5px;
+}
+
+/* Constrain single images/videos to viewport height so they don't dominate */
+.image-wrapper img, 
+.video-wrapper video {
+    max-width: 100%;
+    max-height: 700px; /* Prevent extremely tall images */
+    display: block;
+    object-fit: contain;
+}
+
+/* --- Gallery Carousel (CSS Scroll Snap) --- */
+.gallery-wrapper {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    gap: 10px;
+    width: 100%;
+    
+    /* Hide Scrollbar but keep functionality */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE */
+}
+
+.gallery-wrapper::-webkit-scrollbar { 
+    display: none; /* Chrome/Safari */
+}
+
+.gallery-item {
+    flex: 0 0 100%; /* Each item takes full width */
+    scroll-snap-align: center;
+    display: flex;
+    justify-content: center;
+    background: black;
+}
+
+.gallery-item img {
+    max-height: 600px;
+    max-width: 100%;
+    object-fit: contain;
+}
+
+/* --- Post Body & Footer --- */
+.selftext {
+    padding: 0 16px;
+    margin: 1rem 2rem;
+    line-height: 1.6;
+    font-family: 'Verdana', sans-serif;
+}
+
+.post-footer {
+    padding: 8px 16px;
+    background-color: #f8f9fa;
+    border-top: 1px solid #edeff1;
+    font-weight: bold;
+    font-size: 1rem;
+    display: flex;
+    gap: 2rem;
+}
+
+/* --- Comment Hierarchy --- */
+.comment-section {
+    padding: 16px 16px 32px 16px;
+}
+
+.comment-node {
+    margin: 1rem 2rem;
+}
+
+.comment-content {
+    padding-bottom: 5px;
+}
+
+.comment-content .meta {
+    font-size: 0.75rem;
+    color: var(--text-meta);
+    margin-bottom: 4px;
+}
+
+.comment-content .author {
+    font-weight: bold;
+    color: #1c1c1c;
+}
+
+.comment-content .body {
+    font-size: 1rem;
+    line-height: 1.4;
+}
+
+/* The Nested Thread Line */
+.replies {
+    border-left: 2px solid var(--thread-line);
+    margin-left: 10px; /* Indent the whole block */
+    padding-left: 15px; /* Space between line and content */
+}
+
+.replies:hover {
+    border-left-color: var(--thread-line-hover);
+}

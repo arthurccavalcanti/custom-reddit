@@ -1,0 +1,22 @@
+{% macro render_comment(comment) %}
+<div class="comment-node">
+    <div class="comment-content">
+        <div class="meta">
+            <span class="author">{{ comment['author'] }}</span>
+            <span class="score">{{ comment['score'] }} points</span>
+            <span class="time">• {{ comment['datetime'] }}</span>
+        </div>
+        <div class="body">
+            {{ comment['body'] }}
+        </div>
+    </div>
+    
+    {% if comment['replies'] %}
+        <div class="replies">
+            {% for reply in comment['replies'].values() %}
+                {{ render_comment(reply) }}
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+{% endmacro %}

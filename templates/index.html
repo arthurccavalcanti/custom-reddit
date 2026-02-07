@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+
+{% block styles %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='index.css') }}"
+{% endblock %}
+
+{% block content %}
+    <form action="{{ url_for('home') }}" method="get">
+        <input type="text" name="q" placeholder="Search titles..." value="{{ q }}">
+        <input type="text" name="sub" placeholder="Subreddit..." value="{{ sub }}">
+        <button type="submit">Filter</button>
+    </form>
+
+    {% if not posts %}
+        <div class="no-posts">
+            <span>There aren't any downloaded posts yet...</span>
+        </div>
+    {% endif %}
+
+    <div>
+        {% for post in posts %}
+            <div class="post-preview">
+                <h2><a href="{{ url_for('view_post', post_id=post['id']) }}">{{ post['title'] }}</a></h2>
+                <p class="subreddit-name">• r/{{ post['subreddit'] }}</p>
+                <p class="post-author">Posted by: {{ post['author'] }}</p></p>
+
+                <div class="media-container">
+                    {% if post['post_type'] == "video" %}
+                        <div class="video-wrapper">
+                            <video controls>
+                                <source src="{{ url_for('serve_media', filename=post['local_media']) }}" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    {% elif post['post_type'] == "image" %}
+                        <div class="image-wrapper">
+                            <img src="{{ url_for('serve_media', filename=post['local_media']) }}">
+                        </div>
+                    {% elif post['post_type'] == "gallery" %}
+                        <div class="gallery-wrapper">
+                            {% for image in post['local_media'] %}
+                                <div class="gallery-item">
+                                    <img src="{{ url_for('serve_media', filename=image) }}">
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                {% if post['text'] %}
+                    <p class="post-text-preview">{{ post['text'][:200]}} ...</p>
+                {% endif %}
+                <a class="post-num-comments" href="{{ url_for('view_post', post_id=post['id']) }}">{{ post['num_comments'] }} comments</a>
+            </div>
+        {% endfor %}
+    </div>
+
+    <div class="pagination">
+        {% if page > 1 %}
+            <a href="{{ url_for('home', page=page-1, q=q, sub=sub) }}">Previous</a>
+        {% endif %}
+        
+        <span>Page {{ page }} of {{ total_pages }}</span>
+
+        {% if page < total_pages %}
+            <a href="{{ url_for('home', page=page+1, q=q, sub=sub) }}">Next</a>
+        {% endif %}
+    </div>
+{% endblock %}
