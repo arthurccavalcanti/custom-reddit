@@ -2,7 +2,8 @@
 {% from 'macros.html' import render_comment %}
 
 {% block styles %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='post.css') }}"
+    <link rel="stylesheet" href="{{ url_for('static', filename='post.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='media.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -41,11 +42,23 @@
 
                 {% if post['post_type'] == 'gallery' %}
                     <div class="gallery-wrapper">
-                        {% for image in local_media %}
-                            <div class="gallery-item">
-                                <img src="{{ url_for('serve_media', filename=image) }}">
-                            </div>
-                        {% endfor %}
+                        
+                        <div class="gallery-track">
+                            {% for image in local_media %}
+                                <div class="gallery-slide">
+                                    <img src="{{ url_for('serve_media', filename=image) }}" alt="Slide {{ loop.index }}">
+                                </div>
+                            {% endfor %}
+                        </div>
+
+                        <button class="gallery-btn prev" aria-label="Previous Slide" style="display: none;">❮</button>
+                        <button class="gallery-btn next" aria-label="Next Slide">❯</button>
+
+                        <div class="gallery-dots">
+                            {% for image in local_media %}
+                                <button class="dot {{ 'active' if loop.first else '' }}" data-index="{{ loop.index0 }}" aria-label="Go to slide {{ loop.index }}"></button>
+                            {% endfor %}
+                        </div>
                     </div>
                 {% endif %}
             </div>
@@ -69,4 +82,83 @@
             {% endif %}
         </div>
     </article>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // 1. Find ALL gallery wrappers on the page
+            const galleries = document.querySelectorAll('.gallery-wrapper');
+
+            // 2. Iterate over each gallery individually
+            galleries.forEach(wrapper => {
+                
+                // --- Scoped Selections ---
+                // We search only INSIDE this specific 'wrapper'
+                const track = wrapper.querySelector('.gallery-track');
+                const nextBtn = wrapper.querySelector('.gallery-btn.next');
+                const prevBtn = wrapper.querySelector('.gallery-btn.prev');
+                const dotsNav = wrapper.querySelector('.gallery-dots');
+                
+                // Safety check: if parts are missing, skip this gallery
+                if (!track || !dotsNav) return;
+
+                const slides = Array.from(track.children);
+                const dots = Array.from(dotsNav.children);
+                
+                // State is local to THIS gallery instance
+                let currentIndex = 0;
+
+                // --- Core Logic ---
+                const updateGallery = (index) => {
+                    if (index < 0 || index >= slides.length) return;
+                    
+                    // Get width of THIS gallery's slide
+                    const slideWidth = slides[0].getBoundingClientRect().width;
+                    
+                    track.scrollTo({
+                        left: slideWidth * index,
+                        behavior: 'smooth'
+                    });
+
+                    // Update Dots
+                    dots.forEach(d => d.classList.remove('active'));
+                    if(dots[index]) dots[index].classList.add('active');
+
+                    // Update Buttons
+                    if (prevBtn) prevBtn.style.display = index === 0 ? 'none' : 'block';
+                    if (nextBtn) nextBtn.style.display = index === slides.length - 1 ? 'none' : 'block';
+                    
+                    currentIndex = index;
+                };
+
+                // --- Event Listeners (Scoped) ---
+
+                if (nextBtn) {
+                    nextBtn.addEventListener('click', () => {
+                        if (currentIndex < slides.length - 1) updateGallery(currentIndex + 1);
+                    });
+                }
+
+                if (prevBtn) {
+                    prevBtn.addEventListener('click', () => {
+                        if (currentIndex > 0) updateGallery(currentIndex - 1);
+                    });
+                }
+
+                dotsNav.addEventListener('click', (e) => {
+                    const targetDot = e.target.closest('.dot');
+                    if (!targetDot) return;
+                    const targetIndex = parseInt(targetDot.dataset.index);
+                    updateGallery(targetIndex);
+                });
+
+                // Resize handler (Scoped)
+                // We attach the resize event to window, but it updates THIS gallery
+                window.addEventListener('resize', () => {
+                    track.style.scrollBehavior = 'auto';
+                    updateGallery(currentIndex);
+                    track.style.scrollBehavior = 'smooth';
+                });
+            });
+        });
+    </script>
 {% endblock %}
