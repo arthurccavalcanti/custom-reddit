@@ -4,3 +4,4 @@ cache/
 __pycache__/
 reddit_env/
 data/
+.DS_Store
